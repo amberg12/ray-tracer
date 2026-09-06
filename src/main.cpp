@@ -1,8 +1,9 @@
 import std;
 
 import ppm;
+import vec;
 
-struct ExampleWriter : public raytracer::PpmWriter {
+struct ExampleWriter : public raytracer::ppm::PpmWriter {
   ~ExampleWriter() override = default;
 
   ExampleWriter(const std::uint64_t image_width, const std::uint64_t image_height)
@@ -10,18 +11,18 @@ struct ExampleWriter : public raytracer::PpmWriter {
   }
 
 
-  auto write(const std::uint64_t x,
-             const std::uint64_t y) -> std::tuple<std::uint8_t, std::uint8_t, std::uint8_t> override {
-    const auto r = static_cast<std::uint8_t>(x * 255 / image_width);
-    const auto g = static_cast<std::uint8_t>(y * 255 / image_height);
-    return {r, g, 0};
+  auto write(const std::uint64_t x, const std::uint64_t y) -> raytracer::vec::PpmColor override {
+    const auto nx = static_cast<double>(x) / static_cast<double>(image_width);
+    const auto ny = static_cast<double>(y) / static_cast<double>(image_height);
+
+    return raytracer::vec::Vec2{nx, ny}.expand<3>().normalize();
   }
 
   std::uint64_t image_width, image_height;
 };
 
 auto main() -> int {
-  const auto writer = raytracer::Ppm::create<ExampleWriter>(255, 255);
+  const auto writer = raytracer::ppm::Ppm::create<ExampleWriter>(255, 255);
 
   writer.render();
 }

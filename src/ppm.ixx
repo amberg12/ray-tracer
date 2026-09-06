@@ -1,12 +1,13 @@
 export module ppm;
 
 import std;
+import vec;
 
-export namespace raytracer {
+export namespace raytracer::ppm {
   struct PpmWriter {
     virtual ~PpmWriter() = default;
 
-    virtual auto write(std::uint64_t x, std::uint64_t y) -> std::tuple<std::uint8_t, std::uint8_t, std::uint8_t> = 0;
+    virtual auto write(std::uint64_t x, std::uint64_t y) -> vec::PpmColor = 0;
   };
 
   struct Ppm {
@@ -29,8 +30,8 @@ export namespace raytracer {
         std::flush(std::clog);
 
         for (const auto x: std::views::iota(static_cast<std::uint64_t>(0), image_width_)) {
-          const auto [r, g, b] = writer_->write(x, y);
-          std::println("{} {} {}", r, g, b);
+          const auto color = writer_->write(x, y);
+          std::println("{}", color);
         }
       }
 
