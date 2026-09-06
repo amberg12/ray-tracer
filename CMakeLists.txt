@@ -12,4 +12,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_MODULE_STD ON)
 
 add_executable(raytracer src/main.cpp)
+
+target_sources(raytracer
+        PUBLIC
+        FILE_SET CXX_MODULES
+        FILES
+        src/ppm.ixx
+)
+
 target_link_options(raytracer PRIVATE -stdlib=libc++)
