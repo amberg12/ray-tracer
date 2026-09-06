@@ -5,6 +5,8 @@ import std;
 export namespace raytracer::vec {
   template<class T, std::size_t N>
   struct Vec {
+    Vec() requires(std::is_default_constructible_v<T>) = default;
+
     template<class... Args>
       requires((std::convertible_to<Args, T> && ...) && sizeof...(Args) == N)
     explicit Vec(Args... args) : raw{std::forward<Args>(args)...} {
@@ -57,11 +59,24 @@ export namespace raytracer::vec {
       return apply(normalize);
     }
 
+    friend auto operator+(const Vec &rhs, const Vec &lhs)
+      requires requires(T a, T b) { a + b; } {
+      return rhs.apply(std::plus{}, lhs);
+    }
+
+    friend auto operator*(const Vec &lhs, const double rhs)
+      requires requires(T a) { a * rhs; } {
+      return lhs.apply([rhs](T v) {
+        return v * rhs;
+      });
+    }
+
     std::array<T, N> raw;
   };
 
   using Vec2 = Vec<double, 2>;
   using Vec3 = Vec<double, 3>;
+  using Point3 = Vec<double, 3>;
   using Color = Vec<double, 3>;
   using PpmColor = Vec<std::uint8_t, 3>;
 }
