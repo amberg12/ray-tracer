@@ -18,6 +18,7 @@ target_sources(raytracer
         FILE_SET CXX_MODULES
         FILES
         src/ppm.ixx
+        src/vec.ixx
 )
 
 target_link_options(raytracer PRIVATE -stdlib=libc++)
