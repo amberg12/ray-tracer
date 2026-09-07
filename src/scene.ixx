@@ -114,7 +114,7 @@ export namespace raytracer::scene {
         return (1.0 - a) * vec::Color(1.0, 1.0, 1.0) + a * vec::Color(0.5, 0.7, 1.0);
       };
 
-      auto pixel_color = std::ranges::fold_left(
+      const auto pixel_color = std::ranges::fold_left(
         std::views::iota(0, sampling_rate)
         | std::views::transform([&](auto) { return ray_color(generate_ray(x, y)); }),
         vec::Color{},
