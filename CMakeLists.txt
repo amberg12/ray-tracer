@@ -18,6 +18,8 @@ target_sources(raytracer
         FILE_SET CXX_MODULES
         FILES
         src/ppm.ixx
+        src/ray.ixx
+        src/scene.ixx
         src/vec.ixx
 )
 

@@ -5,9 +5,11 @@ import std;
 export namespace raytracer::vec {
   template<class T, std::size_t N>
   struct Vec {
+    Vec() requires(std::is_default_constructible_v<T>) = default;
+
     template<class... Args>
       requires((std::convertible_to<Args, T> && ...) && sizeof...(Args) == N)
-    explicit Vec(Args... args) : raw{std::forward<Args>(args)...} {
+    explicit Vec(Args... args) : raw{std::forward<Args>(static_cast<T>(args))...} {
     }
 
     template<std::size_t NewSize>
@@ -33,6 +35,19 @@ export namespace raytracer::vec {
       }(std::make_index_sequence<N>{});
     }
 
+    template<class F>
+    auto collect(const F &f, T base = T{}) const -> T {
+      [&]<std::size_t... I>(std::index_sequence<I...>) {
+        ((base = f(base, raw[I])), ...);
+      }(std::make_index_sequence<N>{});
+
+      return base;
+    }
+
+    auto sum() const -> T requires requires(T a, T b) { a + b; } {
+      return collect(std::plus{});
+    }
+
     static constexpr auto size() -> std::size_t {
       return N;
     }
@@ -41,6 +56,18 @@ export namespace raytracer::vec {
       requires(Idx < N)
     auto get() const -> const T & {
       return raw[Idx];
+    }
+
+    auto x() const -> const T & requires(N >= 1) {
+      return get<0>();
+    }
+
+    auto y() const -> const T & requires(N >= 2) {
+      return get<1>();
+    }
+
+    auto z() const -> const T & requires(N >= 3) {
+      return get<2>();
     }
 
     template<std::size_t Idx>
@@ -57,11 +84,54 @@ export namespace raytracer::vec {
       return apply(normalize);
     }
 
+    auto length() const -> T {
+      return std::sqrt(apply([](T v) { return v * v; }).sum());
+    }
+
+    auto unit_vector() const -> Vec {
+      return *this / length();
+    }
+
+    auto dot(const Vec &rhs) const -> T {
+      return apply([](T a, T b) { return a * b; }, rhs).sum();
+    }
+
+    friend auto operator+(const Vec &lhs, const Vec &rhs)
+      requires requires(T a, T b) { a + b; } {
+      return lhs.apply(std::plus{}, rhs);
+    }
+
+    friend auto operator-(const Vec &lhs, const Vec &rhs)
+      requires requires(T a, T b) { a - b; } {
+      return lhs.apply(std::minus{}, rhs);
+    }
+
+    friend auto operator*(const Vec &lhs, const double rhs)
+      requires requires(T a) { a * rhs; } {
+      return lhs.apply([rhs](T v) { return v * rhs; });
+    }
+
+    friend auto operator*(const double lhs, const Vec &rhs)
+      requires requires(T a) { lhs * a; } {
+      return rhs.apply([lhs](T v) { return lhs * v; });
+    }
+
+    friend auto operator/(const Vec &lhs, const double rhs)
+      requires requires(T a) { a / rhs; } {
+      return lhs.apply([rhs](T v) { return v / rhs; });
+    }
+
+    friend auto operator-(const Vec &lhs)
+      requires requires(T a) { -a; } {
+      return lhs.apply(std::negate{});
+    }
+
     std::array<T, N> raw;
   };
 
   using Vec2 = Vec<double, 2>;
   using Vec3 = Vec<double, 3>;
+  using Point3 = Vec<double, 3>;
   using Color = Vec<double, 3>;
   using PpmColor = Vec<std::uint8_t, 3>;
 }
