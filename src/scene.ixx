@@ -4,6 +4,7 @@ import std;
 import ppm;
 import vec;
 import ray;
+import interval;
 
 export namespace raytracer::scene {
   struct HitRecord {
@@ -21,15 +22,14 @@ export namespace raytracer::scene {
   struct Object {
     virtual ~Object() = default;
 
-    [[nodiscard]] virtual auto hit(const ray::Ray &r, double ray_t_min, double ray_t_max, HitRecord &rec) -> bool = 0;
+    [[nodiscard]] virtual auto hit(const ray::Ray &r, interval::Interval ray_t, HitRecord &rec) -> bool = 0;
   };
 
   struct Sphere : public Object {
     Sphere(const vec::Point3 &center, const double radius) : center_(center), radius_(radius) {
     }
 
-    [[nodiscard]] auto hit(const ray::Ray &r, const double ray_t_min, const double ray_t_max,
-                           HitRecord &rec) -> bool override {
+    [[nodiscard]] auto hit(const ray::Ray &r, const interval::Interval ray_t, HitRecord &rec) -> bool override {
       const vec::Vec3 o = center_ - r.origin();
       const auto a = std::pow(r.direction().length(), 2);
       const auto h = r.direction().dot(o);
@@ -45,14 +45,10 @@ export namespace raytracer::scene {
 
       auto root = (h - sqrt_d) / a;
 
-      const auto invalid_root = [&] {
-        return root <= ray_t_min || ray_t_max <= root;
-      };
-
-      if (invalid_root()) {
+      if (!ray_t.surrounds(root)) {
         root = (h + sqrt_d) / a;
 
-        if (invalid_root()) {
+        if (!ray_t.surrounds(root)) {
           return false;
         }
       }
@@ -99,7 +95,7 @@ export namespace raytracer::scene {
       const auto ray_color = [&] {
         HitRecord rec{};
 
-        if (hit(r, 0, std::numeric_limits<double>::max(), rec)) {
+        if (hit(r, interval::Interval{.min = 0}, rec)) {
           return 0.5 * (rec.normal + vec::Color{1.0, 1.0, 1.0});
         }
 
@@ -112,13 +108,13 @@ export namespace raytracer::scene {
     }
 
   private:
-    auto hit(const ray::Ray &r, const double ray_t_min, const double ray_t_max, HitRecord &rec) const -> bool {
+    auto hit(const ray::Ray &r, const interval::Interval ray_t, HitRecord &rec) const -> bool {
       HitRecord temp_record{};
       bool hit_anything = false;
-      auto closest_so_far = ray_t_max;
+      auto closest_so_far = ray_t.max;
 
       for (const auto &object: objects_) {
-        if (object->hit(r, ray_t_min, closest_so_far, temp_record)) {
+        if (object->hit(r, interval::Interval{ray_t.min, closest_so_far}, temp_record)) {
           hit_anything = true;
           closest_so_far = temp_record.t;
           rec = temp_record;

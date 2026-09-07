@@ -17,6 +17,7 @@ target_sources(raytracer
         PUBLIC
         FILE_SET CXX_MODULES
         FILES
+        src/interval.ixx
         src/ppm.ixx
         src/ray.ixx
         src/scene.ixx
