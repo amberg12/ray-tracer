@@ -9,7 +9,7 @@ export namespace raytracer::vec {
 
     template<class... Args>
       requires((std::convertible_to<Args, T> && ...) && sizeof...(Args) == N)
-    explicit Vec(Args... args) : raw{std::forward<Args>(args)...} {
+    explicit Vec(Args... args) : raw{std::forward<Args>(static_cast<T>(args))...} {
     }
 
     template<std::size_t NewSize>
@@ -92,6 +92,10 @@ export namespace raytracer::vec {
       return *this / length();
     }
 
+    auto dot(const Vec &rhs) const -> T {
+      return apply([](T a, T b) { return a * b; }, rhs).sum();
+    }
+
     friend auto operator+(const Vec &lhs, const Vec &rhs)
       requires requires(T a, T b) { a + b; } {
       return lhs.apply(std::plus{}, rhs);
@@ -115,6 +119,11 @@ export namespace raytracer::vec {
     friend auto operator/(const Vec &lhs, const double rhs)
       requires requires(T a) { a / rhs; } {
       return lhs.apply([rhs](T v) { return v / rhs; });
+    }
+
+    friend auto operator-(const Vec &lhs)
+      requires requires(T a) { -a; } {
+      return lhs.apply(std::negate{});
     }
 
     std::array<T, N> raw;
