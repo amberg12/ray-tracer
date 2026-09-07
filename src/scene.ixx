@@ -94,7 +94,7 @@ export namespace raytracer::scene {
                                   double>(y);
       const auto ray_direction = pixel_centre - camera_centre_;
 
-      const auto r = ray::Ray{pixel_centre, ray_direction};
+      const auto r = ray::Ray{camera_centre_, ray_direction};
 
       const auto ray_color = [&] {
         HitRecord rec{};
