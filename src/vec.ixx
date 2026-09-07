@@ -35,6 +35,19 @@ export namespace raytracer::vec {
       }(std::make_index_sequence<N>{});
     }
 
+    template<class F>
+    auto collect(const F &f, T base = T{}) const -> T {
+      [&]<std::size_t... I>(std::index_sequence<I...>) {
+        ((base = f(base, raw[I])), ...);
+      }(std::make_index_sequence<N>{});
+
+      return base;
+    }
+
+    auto sum() const -> T requires requires(T a, T b) { a + b; } {
+      return collect(std::plus{});
+    }
+
     static constexpr auto size() -> std::size_t {
       return N;
     }
@@ -43,6 +56,18 @@ export namespace raytracer::vec {
       requires(Idx < N)
     auto get() const -> const T & {
       return raw[Idx];
+    }
+
+    auto x() const -> const T & requires(N >= 1) {
+      return get<0>();
+    }
+
+    auto y() const -> const T & requires(N >= 2) {
+      return get<1>();
+    }
+
+    auto z() const -> const T & requires(N >= 3) {
+      return get<2>();
     }
 
     template<std::size_t Idx>
@@ -59,16 +84,37 @@ export namespace raytracer::vec {
       return apply(normalize);
     }
 
-    friend auto operator+(const Vec &rhs, const Vec &lhs)
+    auto length() const -> T {
+      return std::sqrt(apply([](T v) { return v * v; }).sum());
+    }
+
+    auto unit_vector() const -> Vec {
+      return *this / length();
+    }
+
+    friend auto operator+(const Vec &lhs, const Vec &rhs)
       requires requires(T a, T b) { a + b; } {
-      return rhs.apply(std::plus{}, lhs);
+      return lhs.apply(std::plus{}, rhs);
+    }
+
+    friend auto operator-(const Vec &lhs, const Vec &rhs)
+      requires requires(T a, T b) { a - b; } {
+      return lhs.apply(std::minus{}, rhs);
     }
 
     friend auto operator*(const Vec &lhs, const double rhs)
       requires requires(T a) { a * rhs; } {
-      return lhs.apply([rhs](T v) {
-        return v * rhs;
-      });
+      return lhs.apply([rhs](T v) { return v * rhs; });
+    }
+
+    friend auto operator*(const double lhs, const Vec &rhs)
+      requires requires(T a) { lhs * a; } {
+      return rhs.apply([lhs](T v) { return lhs * v; });
+    }
+
+    friend auto operator/(const Vec &lhs, const double rhs)
+      requires requires(T a) { a / rhs; } {
+      return lhs.apply([rhs](T v) { return v / rhs; });
     }
 
     std::array<T, N> raw;

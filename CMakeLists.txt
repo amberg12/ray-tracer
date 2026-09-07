@@ -19,6 +19,7 @@ target_sources(raytracer
         FILES
         src/ppm.ixx
         src/ray.ixx
+        src/scene.ixx
         src/vec.ixx
 )
 
