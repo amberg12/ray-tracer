@@ -1,6 +1,7 @@
 export module vec;
 
 import std;
+import interval;
 
 export namespace raytracer::vec {
   template<class T, std::size_t N>
@@ -78,7 +79,9 @@ export namespace raytracer::vec {
 
     auto normalize() const -> Vec<std::uint8_t, N> requires (std::same_as<T, double>) {
       const auto normalize = [](const double n) -> std::uint8_t {
-        return static_cast<std::uint8_t>(n * 255.999);
+        constexpr auto intensity = interval::Interval{0, 0.999};
+
+        return static_cast<std::uint8_t>(intensity.clamp(n) * 255);
       };
 
       return apply(normalize);
@@ -99,6 +102,12 @@ export namespace raytracer::vec {
     friend auto operator+(const Vec &lhs, const Vec &rhs)
       requires requires(T a, T b) { a + b; } {
       return lhs.apply(std::plus{}, rhs);
+    }
+
+    friend auto operator+=(Vec &lhs, const Vec &rhs)
+      requires requires(T a, T b) { a + b; } {
+      lhs = lhs.apply(std::plus{}, rhs);
+      return lhs;
     }
 
     friend auto operator-(const Vec &lhs, const Vec &rhs)

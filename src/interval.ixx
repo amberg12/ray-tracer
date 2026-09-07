@@ -4,6 +4,9 @@ import std;
 
 export namespace raytracer::interval {
   struct Interval {
+    constexpr Interval(const double min, const double max) : min{min}, max{max} {
+    }
+
     double min = std::numeric_limits<double>::min();
     double max = std::numeric_limits<double>::max();
 
@@ -19,14 +22,19 @@ export namespace raytracer::interval {
       return min < x && x < max;
     }
 
-    inline static const Interval empty, universe;
+    [[nodiscard]] constexpr auto clamp(const double x) const -> double {
+      // We must account for the case of max < min
+      return std::max(min, std::min(x, max));
+    }
+
+    static const Interval empty, universe;
   };
 
-  const auto Interval::empty{
+  const Interval Interval::empty{
     std::numeric_limits<double>::max(), std::numeric_limits<double>::min()
   };
 
-  const auto Interval::universe{
+  const Interval Interval::universe{
     std::numeric_limits<double>::min(), std::numeric_limits<double>::max()
   };
 }
