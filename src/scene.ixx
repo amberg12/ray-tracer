@@ -63,15 +63,17 @@ export namespace raytracer::scene {
   };
 
   struct Metal : public Material {
-    explicit Metal(const vec::Color &albedo) : Material(), albedo_(albedo) {
+    explicit Metal(const vec::Color &albedo, const double fuzz) : Material(), albedo_(albedo), fuzz_(fuzz) {
     }
 
     auto scatter(const ray::Ray &in, const HitRecord &rec) -> std::optional<Result> override {
-      return Result{.attenuation = albedo_, .scattered = ray::Ray{rec.point, in.direction().reflect(rec.normal)}};
+      const vec::Vec3 reflected = in.direction().reflect(rec.normal).unit_vector() + fuzz_ * vec::Vec3::random_unit();
+      return Result{.attenuation = albedo_, .scattered = ray::Ray{rec.point, reflected}};
     }
 
   private:
     vec::Color albedo_;
+    double fuzz_;
   };
 
   struct Object {

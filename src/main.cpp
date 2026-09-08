@@ -7,8 +7,8 @@ import scene;
 using namespace raytracer;
 
 auto main() -> int {
-  auto red_metal = std::make_shared<scene::Metal>(vec::Color{0.8, 0.0, 0.0});
-  auto green_metal = std::make_shared<scene::Metal>(vec::Color{0.0, 0.8, 0.0});
+  auto red_metal = std::make_shared<scene::Metal>(vec::Color{0.8, 0.0, 0.0}, 0.1);
+  auto green_metal = std::make_shared<scene::Metal>(vec::Color{0.0, 0.8, 0.0}, 0.9);
   auto blue_lambertian = std::make_shared<scene::Lambertian>(vec::Color{0.2, 0.2, 0.6});
   auto yellow_lambertian = std::make_shared<scene::Lambertian>(vec::Color{0.8, 0.8, 0.1});
 
