@@ -2,6 +2,7 @@ export module scene;
 
 import std;
 import ppm;
+import random;
 import vec;
 import ray;
 import interval;
@@ -9,18 +10,8 @@ import interval;
 namespace {
   using namespace raytracer;
 
-  [[nodiscard]] auto random_double() -> double {
-    static std::uniform_real_distribution distribution{0.0, 1.0};
-    static std::mt19937 generator;
-    return distribution(generator);
-  }
-
-  [[nodiscard]] double random_double(const double min, const double max) {
-    return min + (max - min) * random_double();
-  }
-
   [[nodiscard]] auto sample_square() -> vec::Vec3 {
-    return vec::Vec3{random_double(-0.5, 0.5), random_double(-0.5, 0.5), 0.0};
+    return vec::Vec3{random::random_double(-0.5, 0.5), random::random_double(-0.5, 0.5), 0.0};
   }
 }
 
@@ -104,27 +95,35 @@ export namespace raytracer::scene {
     }
 
     auto write(const std::uint64_t x, const std::uint64_t y) -> vec::PpmColor override {
-      const auto ray_color = [&](const ray::Ray &r) {
-        if (HitRecord rec{}; hit(r, interval::Interval{0, std::numeric_limits<double>::max()}, rec)) {
-          return 0.5 * (rec.normal + vec::Color{1.0, 1.0, 1.0});
-        }
-
-        const auto unit_vector = r.direction().unit_vector();
-        const auto a = 0.5 * unit_vector.y() + 1.0;
-        return (1.0 - a) * vec::Color(1.0, 1.0, 1.0) + a * vec::Color(0.5, 0.7, 1.0);
-      };
-
       const auto pixel_color = std::ranges::fold_left(
         std::views::iota(0, sampling_rate)
-        | std::views::transform([&](auto) { return ray_color(generate_ray(x, y)); }),
+        | std::views::transform([&](auto) { return ray_color(generate_ray(x, y), depth_limit); }),
         vec::Color{},
         std::plus{}
       );
 
-      return (pixel_color * (1.0 / sampling_rate)).normalize();
+      return (pixel_color * (1.0 / sampling_rate)).apply([](const auto v) { return std::sqrt(v); }).normalize();
     }
 
   private:
+    auto ray_color(const ray::Ray &r, int depth) const -> vec::Color{
+      // If a ray has bounced enough, we assume that it can no longer pick up light.
+      if (depth <= 0) {
+        return {};
+      }
+
+      if (HitRecord rec{}; hit(r, interval::Interval{0.001, std::numeric_limits<double>::max()}, rec)) {
+        const vec::Vec3 direction = rec.normal + vec::Vec3::random_unit_in_hemisphere(rec.normal);
+        const auto new_ray = ray::Ray{rec.point, direction};
+
+        return 0.5 * ray_color(new_ray, depth - 1);
+      }
+
+      const auto unit_vector = r.direction().unit_vector();
+      const auto a = 0.5 * unit_vector.y() + 1.0;
+      return (1.0 - a) * vec::Color(1.0, 1.0, 1.0) + a * vec::Color(0.5, 0.7, 1.0);
+    };
+
     auto hit(const ray::Ray &r, const interval::Interval ray_t, HitRecord &rec) const -> bool {
       HitRecord temp_record{};
       bool hit_anything = false;
@@ -153,6 +152,7 @@ export namespace raytracer::scene {
 
     static constexpr double focal_length = 1.0;
     static constexpr int sampling_rate = 10;
+    static constexpr int depth_limit = 25;
 
     const std::uint64_t image_width_{};
     const std::uint64_t image_height_{};
