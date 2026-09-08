@@ -75,6 +75,14 @@ export namespace raytracer::vec {
       return collect(std::plus{});
     }
 
+    auto near_zero() const -> bool requires std::same_as<T, double> {
+      return apply([](const auto v) { return std::fabs(v) < 1e-6; }).sum();
+    }
+
+    auto reflect(const Vec &n) const -> Vec {
+      return *this - 2 * this->dot(n) * n;
+    }
+
     static constexpr auto size() -> std::size_t {
       return N;
     }
@@ -139,6 +147,11 @@ export namespace raytracer::vec {
     friend auto operator-(const Vec &lhs, const Vec &rhs)
       requires requires(T a, T b) { a - b; } {
       return lhs.apply(std::minus{}, rhs);
+    }
+
+    friend auto operator*(const Vec &lhs, const Vec &rhs)
+      requires requires(T a, T b) { a * b; } {
+      return lhs.apply(std::multiplies{}, rhs);
     }
 
     friend auto operator*(const Vec &lhs, const double rhs)

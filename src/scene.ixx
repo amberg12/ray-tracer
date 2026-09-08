@@ -16,16 +16,64 @@ namespace {
 }
 
 export namespace raytracer::scene {
+  struct Material;
+
   struct HitRecord {
     vec::Point3 point;
     vec::Vec3 normal;
     double t;
     bool front_face;
+    std::shared_ptr<Material> material;
 
     auto set_face_normal(const ray::Ray &r, const vec::Vec3 &outward_normal) -> void {
       front_face = r.direction().dot(outward_normal) < 0;
       normal = front_face ? outward_normal : -outward_normal;
     }
+  };
+
+  struct Material {
+    struct Result {
+      vec::Color attenuation;
+      ray::Ray scattered;
+    };
+
+    virtual ~Material() = default;
+
+    virtual auto scatter(const ray::Ray &in, const HitRecord &rec) -> std::optional<Result> {
+      return std::nullopt;
+    }
+  };
+
+  struct Lambertian : public Material {
+    explicit Lambertian(const vec::Color &albedo) : Material(), albedo_(albedo) {
+    }
+
+    auto scatter(const ray::Ray &in, const HitRecord &rec) -> std::optional<Result> override {
+      auto scatter_direction = rec.normal + vec::Vec3::random_unit();
+
+      if (scatter_direction.near_zero()) {
+        scatter_direction = rec.normal;
+      }
+
+      return Result{.attenuation = albedo_, .scattered = ray::Ray{rec.point, scatter_direction}};
+    }
+
+  private:
+    vec::Color albedo_;
+  };
+
+  struct Metal : public Material {
+    explicit Metal(const vec::Color &albedo, const double fuzz) : Material(), albedo_(albedo), fuzz_(fuzz) {
+    }
+
+    auto scatter(const ray::Ray &in, const HitRecord &rec) -> std::optional<Result> override {
+      const vec::Vec3 reflected = in.direction().reflect(rec.normal).unit_vector() + fuzz_ * vec::Vec3::random_unit();
+      return Result{.attenuation = albedo_, .scattered = ray::Ray{rec.point, reflected}};
+    }
+
+  private:
+    vec::Color albedo_;
+    double fuzz_;
   };
 
   struct Object {
@@ -35,7 +83,8 @@ export namespace raytracer::scene {
   };
 
   struct Sphere : public Object {
-    Sphere(const vec::Point3 &center, const double radius) : center_(center), radius_(radius) {
+    Sphere(const vec::Point3 &center, const double radius, std::shared_ptr<Material> material) : center_(center),
+      radius_(radius), material_(material) {
     }
 
     [[nodiscard]] auto hit(const ray::Ray &r, const interval::Interval ray_t, HitRecord &rec) -> bool override {
@@ -66,6 +115,7 @@ export namespace raytracer::scene {
       rec.point = r.at(rec.t);
       const vec::Vec3 outward_normal = (rec.point - center_) / radius_;
       rec.set_face_normal(r, outward_normal);
+      rec.material = material_;
 
       return true;
     }
@@ -73,6 +123,7 @@ export namespace raytracer::scene {
   private:
     vec::Point3 center_;
     double radius_;
+    std::shared_ptr<Material> material_;
   };
 
   struct Scene : public ppm::PpmWriter {
@@ -106,17 +157,16 @@ export namespace raytracer::scene {
     }
 
   private:
-    auto ray_color(const ray::Ray &r, int depth) const -> vec::Color{
+    auto ray_color(const ray::Ray &r, int depth) const -> vec::Color {
       // If a ray has bounced enough, we assume that it can no longer pick up light.
       if (depth <= 0) {
         return {};
       }
 
       if (HitRecord rec{}; hit(r, interval::Interval{0.001, std::numeric_limits<double>::max()}, rec)) {
-        const vec::Vec3 direction = rec.normal + vec::Vec3::random_unit_in_hemisphere(rec.normal);
-        const auto new_ray = ray::Ray{rec.point, direction};
-
-        return 0.5 * ray_color(new_ray, depth - 1);
+        if (const auto result = rec.material->scatter(r, rec)) {
+          return result->attenuation * ray_color(result->scattered, depth - 1);
+        }
       }
 
       const auto unit_vector = r.direction().unit_vector();
