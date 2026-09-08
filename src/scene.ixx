@@ -113,7 +113,7 @@ export namespace raytracer::scene {
       }
 
       if (HitRecord rec{}; hit(r, interval::Interval{0.001, std::numeric_limits<double>::max()}, rec)) {
-        const vec::Vec3 direction = vec::Vec3::random_unit_in_hemisphere(rec.normal);
+        const vec::Vec3 direction = rec.normal + vec::Vec3::random_unit_in_hemisphere(rec.normal);
         const auto new_ray = ray::Ray{rec.point, direction};
 
         return 0.5 * ray_color(new_ray, depth - 1);
