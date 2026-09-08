@@ -102,7 +102,7 @@ export namespace raytracer::scene {
         std::plus{}
       );
 
-      return (pixel_color * (1.0 / sampling_rate)).normalize();
+      return (pixel_color * (1.0 / sampling_rate)).apply([](const auto v) { return std::sqrt(v); }).normalize();
     }
 
   private:
