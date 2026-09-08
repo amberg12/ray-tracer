@@ -112,7 +112,7 @@ export namespace raytracer::scene {
         return {};
       }
 
-      if (HitRecord rec{}; hit(r, interval::Interval{0, std::numeric_limits<double>::max()}, rec)) {
+      if (HitRecord rec{}; hit(r, interval::Interval{0.001, std::numeric_limits<double>::max()}, rec)) {
         const vec::Vec3 direction = vec::Vec3::random_unit_in_hemisphere(rec.normal);
         const auto new_ray = ray::Ray{rec.point, direction};
 
@@ -152,7 +152,7 @@ export namespace raytracer::scene {
 
     static constexpr double focal_length = 1.0;
     static constexpr int sampling_rate = 10;
-    static constexpr int depth_limit = 10;
+    static constexpr int depth_limit = 25;
 
     const std::uint64_t image_width_{};
     const std::uint64_t image_height_{};
