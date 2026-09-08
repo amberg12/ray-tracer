@@ -19,6 +19,7 @@ target_sources(raytracer
         FILES
         src/interval.ixx
         src/ppm.ixx
+        src/random.ixx
         src/ray.ixx
         src/scene.ixx
         src/vec.ixx

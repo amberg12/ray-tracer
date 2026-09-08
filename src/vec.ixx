@@ -2,6 +2,7 @@ export module vec;
 
 import std;
 import interval;
+import random;
 
 export namespace raytracer::vec {
   template<class T, std::size_t N>
@@ -11,6 +12,31 @@ export namespace raytracer::vec {
     template<class... Args>
       requires((std::convertible_to<Args, T> && ...) && sizeof...(Args) == N)
     explicit Vec(Args... args) : raw{std::forward<Args>(static_cast<T>(args))...} {
+    }
+
+    static constexpr auto random() -> Vec requires (std::same_as<T, double>) {
+      return Vec{}.apply([](auto) { return random::random_double(); });
+    }
+
+    static constexpr auto random(const double min, const double max) -> Vec requires(std::same_as<T, double>) {
+      return Vec{}.apply([min, max](auto) { return random::random_double(min, max); });
+    }
+
+    static constexpr auto random_unit() -> Vec requires(std::same_as<T, double>) {
+      while (true) {
+        const auto p = random();
+        const auto len_sq = std::pow(p.length(), 2);
+
+        if (1e-160 < len_sq && len_sq <= 1) {
+          return p / p.length();
+        }
+      }
+    }
+
+    static constexpr auto random_unit_in_hemisphere(const Vec &rhs) -> Vec requires(std::same_as<T, double>) {
+      const auto v = random_unit();
+
+      return v.dot(rhs) > 0 ? v : -v;
     }
 
     template<std::size_t NewSize>
